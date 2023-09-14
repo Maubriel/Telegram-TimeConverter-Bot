@@ -1,4 +1,4 @@
-paises = {
+zones = {
 
     'paraguay':'America/Asuncion',
     'pry':'America/Asuncion',
@@ -95,17 +95,52 @@ paises = {
     'gt':'America/Guatemala',
     '🇬🇹':'America/Guatemala',
 
-    'guinea ecuatorial':'Africa/Malabo',
-    'GNQ':'Africa/Malabo',
-    'GQ':'Africa/Malabo',
-    '🇬🇶':'Africa/Malabo',
-
     'costa rica':'America/Costa_Rica',
     'cri':'America/Costa_Rica',
     'cr':'America/Costa_Rica',
     '🇨🇷':'America/Costa_Rica',
 
+    'guinea ecuatorial':'Africa/Malabo',
+    'GNQ':'Africa/Malabo',
+    'GQ':'Africa/Malabo',
+    '🇬🇶':'Africa/Malabo',
+
+}
+
+paises = {
+    'America/Asuncion':'Paraguay 🇵🇾',
+    'America/Buenos_Aires':'Argentina 🇦🇷',
+    'America/Bogota':'Colombia 🇨🇴',
+    'Europe/Madrid':'España 🇪🇸',
+    'America/Mexico_City':'México 🇲🇽',
+    'America/Santiago':'Chile 🇨🇱',
+    'America/Panama':'Panamá 🇵🇦',
+    'America/Caracas':'Venezuela 🇻🇪',
+    'America/Lima':'Perú 🇵🇪',
+    'America/El_Salvador':'El Salvador 🇸🇻',
+    'America/Guayaquil':'Ecuador 🇪🇨',
+    'America/Puerto_Rico':'Puerto Rico 🇵🇷',
+    'America/Tegucigalpa':'Honduras 🇭🇳',
+    'America/La_Paz':'Bolivia 🇧🇴',
+    'America/Montevideo':'Uruguay 🇺🇾',
+    'America/Havana':'Cuba 🇨🇺',
+    'America/Santo_Domingo':'República Dominicana 🇩🇴',
+    'America/Managua':'Nicaragua 🇳🇮',
+    'America/Guatemala':'Guatemala 🇬🇹',
+    'America/Costa_Rica':'Costa Rica 🇨🇷',
+    'Africa/Malabo':'Guinea Ecuatorial 🇬🇶',
 }
 
 def get_timezone(code):
-    return paises[code]
+    try:
+        cod = zones[code]
+        return cod
+    except KeyError:
+        return ''
+
+def get_pais(zone):
+    try:
+        pais = paises[zone]
+        return pais
+    except KeyError:
+        return ''
