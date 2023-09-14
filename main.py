@@ -163,6 +163,7 @@ def timeat(message):
         in_dia = get_dia(entrada[0])
         if zona != '' and in_dia != '' and in_hora != -1:
             salida = ''
+            pre_salida = []
             cursor.execute(f"SELECT timezone_id FROM {tableName} WHERE timezone_id='"+zona+"'")
             zona_in_table = cursor.fetchall()
             if len(zona_in_table) > 0:
@@ -194,7 +195,10 @@ def timeat(message):
                         time_ouput[0] -= 24
                         otro_dia = 1
                     dia_output = in_dia + otro_dia
-                    salida += pais_ouput + ' - ' + get_dia(dia_output) + ' ' + str(time_ouput[0]).zfill(2) + ':' + str(time_ouput[1]).zfill(2) + '\n'
+                    pre_salida.append([pais_ouput,dia_output,time_ouput])
+                pre_salida_ordenada = sorted(pre_salida, key=lambda x: (x[1],x[2][0]))
+                for sal in pre_salida_ordenada:
+                    salida += sal[0] + ' - ' + get_dia(sal[1]) + ' ' + str(sal[2][0]).zfill(2) + ':' + str(sal[2][1]).zfill(2) + '\n'
             else:
                 salida = 'Pais no enlistado'
         else:
