@@ -40,7 +40,7 @@ def add(message):
 @bot.message_handler(commands=['timenow'])
 def timenow(message):
     entrada = message.text.lower()
-    salida = 'output'
+    salida = 'Pais no soportado'
     chat_id = message.chat.id
     tableName = get_tableName(chat_id)
     conn = sqlite3.connect('./database.db')
@@ -64,15 +64,16 @@ def timenow(message):
         entrada = entrada.removeprefix('/timenow ')
         zona = paises.get_timezone(entrada)
         if zona != '':
-            cursor.execute(f"SELECT 1 OR IGNORE FROM {tableName} WHERE timezone_id='"+zona+"'")
-            zona_in_table = str(cursor.fetchone())
-            pais = paises.get_pais(zona_in_table)
-            if zona_in_table != '' and pais != '':
-                aux = pytz.timezone(zona_in_table)
-                hora = str(datetime.datetime.now(aux).strftime('%H:%M'))
-                salida = pais + '\t\t' + hora + '\n'
+            cursor.execute(f"SELECT timezone_id FROM {tableName} WHERE timezone_id='"+zona+"'")
+            zona_in_table = cursor.fetchall()
+            if len(zona_in_table) > 0:
+                for x in zona_in_table:
+                    pais = paises.get_pais(x[0])
+                    aux = pytz.timezone(x[0])
+                    hora = str(datetime.datetime.now(aux).strftime('%H:%M'))
+                    salida = pais + '\t\t' + hora + '\n'
             else:
-                salida = 'Pais no encontrado'
+                salida = 'Pais no añadido'
     
     bot.reply_to(message, salida)
 
