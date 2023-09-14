@@ -77,6 +77,99 @@ def timenow(message):
     
     bot.reply_to(message, salida)
 
+def get_hora(str_hora:str):
+    hm = []
+    if 'am' in str_hora:
+        str_hora = str_hora.removesuffix('am')
+        str_hora = str_hora.split(':')
+        if str_hora[0] == 12:
+            hm.append(0)
+        else:
+            hm.append(int(str_hora[0]))
+        if len(str_hora) > 1:
+            hm.append(int(str_hora[1]))
+        else:
+            hm.append(0)
+    elif 'pm' in str_hora:
+        str_hora = str_hora.removesuffix('pm')
+        str_hora = str_hora.split(':')
+        if str_hora[0] == 12:
+            hm.append(int(str_hora[0]))
+        else:
+            hm.append(int(str_hora[0])+12)
+        if len(str_hora) > 1:
+            hm.append(int(str_hora[1]))
+        else:
+            hm.append(0)
+    else:
+        str_hora = str_hora.split(':')
+        for i in str_hora:
+            hm.append(int(i))
+        if len(hm) < 2: hm.append(0)
+    if hm[0] > 23:
+        return -1
+    return hm
+
+# /timeat [hora] [pais]
+# /timeat 6pm Puerto Rico
+# /timeat 6pm mexico
+# /timeat 06:07pm mx
+# /timeat 18 mex
+# /timeat 18:04 mx
+@bot.message_handler(commands=['timeat'])
+def timeat(message):
+    entrada = message.text.lower().split()
+    salida = 'output'
+    chat_id = message.chat.id
+    tableName = get_tableName(chat_id)
+    conn = sqlite3.connect('./database.db')
+    cursor = conn.cursor()
+    cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
+    if len(entrada) == 3 or len(entrada) == 4:
+        entrada.remove('/timeat')
+        if len(entrada) == 3:
+            in_pais = entrada[1] + ' ' + entrada[2]
+        else:
+            in_pais = entrada[1]
+        zona = paises.get_timezone(in_pais)
+        in_hora = get_hora(entrada[0])
+        if zona != '' and in_hora != -1:
+            salida = ''
+            cursor.execute(f"SELECT timezone_id FROM {tableName} WHERE timezone_id='"+zona+"'")
+            zona_in_table = cursor.fetchall()
+            if len(zona_in_table) > 0:
+                for x in zona_in_table:
+                    tz = pytz.timezone(x[0])
+                    time_base = datetime.datetime.now(tz)
+                cursor.execute(f"SELECT * FROM {tableName}")
+                all_zones = cursor.fetchall()
+                for y in all_zones:
+                    tz = pytz.timezone(y[0])
+                    time_destino = datetime.datetime.now(tz)
+                    hora_delta = time_destino.hour - time_base.hour
+                    minuto_delta = time_destino.minute - time_base.minute
+                    time_ouput = [in_hora[0]+hora_delta, in_hora[1]+minuto_delta]
+                    pais_ouput = paises.get_pais(y[0])
+                    hora_menos = 0
+                    if time_ouput[1] < 0:
+                        time_ouput[1]+=60
+                        hora_menos = -1
+                    if time_ouput[0] < 0:
+                        time_ouput[0]+=24
+                    time_ouput[0]+=hora_menos
+                    salida += pais_ouput + ' ' + str(time_ouput[0]).zfill(2) + ':' + str(time_ouput[1]).zfill(2) + '\n'
+            else:
+                salida = 'Pais no enlistado'
+        else:
+            salida = 'Pais no enlistado o error en la hora'
+    else:
+        salida = 'error en comando, mostrar help'
+    
+    bot.reply_to(message, salida)
+
+
+    
+
 # @bot.message_handler(commands=['list'])
 # def list(message):
 #     conn = sqlite3.connect('./database.db')
