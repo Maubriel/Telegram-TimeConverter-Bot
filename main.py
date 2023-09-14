@@ -90,11 +90,6 @@ def add(message):
             cursor.execute(f"INSERT OR IGNORE INTO {tableName} VALUES('" + zona + "')")
         conn.commit()
         conn.close()
-        salida = 'Pais añadido'
-    else:
-        salida = 'No se pudo agregar el pais'
-
-    bot.reply_to(message, salida)
 
 # /timenow - Muestra todos los horarios actuales de los paises añadidos, o muestra UTC
 # /timenow [pais] - Muestra el horario actual del pais indicado, o muestra mensaje de error si no se encuentra
@@ -124,9 +119,11 @@ def timenow(message):
             for sal in pre_salida_ordenada:
                     salida += sal[0] + ' - ' + get_dia(sal[1]) + ' ' + str(sal[2][0]).zfill(2) + ':' + str(sal[2][1]).zfill(2) + '\n'
         else:
-            aux = pytz.timezone('UTC')
-            hora = str(datetime.datetime.now(aux).strftime('%H:%M'))
-            salida = 'UTC 🕗' + hora + '\n'
+            tz = pytz.timezone('UTC')
+            fecha_hora = datetime.datetime.now(tz)
+            dia = get_dia(fecha_hora.weekday())
+            hora = str(fecha_hora.strftime('%H:%M'))
+            salida = 'UTC 🕗 - ' + dia + ' ' + hora + '\n'
     else:
         entrada = entrada.removeprefix('/timenow ')
         zona = paises.get_timezone(entrada)
