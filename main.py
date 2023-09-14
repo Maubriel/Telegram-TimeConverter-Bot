@@ -95,6 +95,7 @@ def add(message):
 # /timenow [pais] - Muestra el horario actual del pais indicado, o muestra mensaje de error si no se encuentra
 @bot.message_handler(commands=['timenow'])
 def timenow(message):
+    bot.send_chat_action(chat_id=message.chat.id, action='typing')
     entrada = message.text.lower()
     salida = 'Pais no soportado'
     chat_id = message.chat.id
@@ -152,6 +153,7 @@ def timenow(message):
 # /timeat MARTES 18:04 mx
 @bot.message_handler(commands=['timeat'])
 def timeat(message):
+    bot.send_chat_action(chat_id=message.chat.id, action='typing')
     entrada = message.text.lower().split()
     salida = 'output'
     chat_id = message.chat.id
@@ -216,25 +218,26 @@ def timeat(message):
     bot.reply_to(message, salida)
 
 
-    
-
-# @bot.message_handler(commands=['list'])
-# def list(message):
-#     conn = sqlite3.connect('./database.db')
-#     cursor = conn.cursor()
-#     chat_id = message.chat.id
-#     tableName = get_tableName(chat_id)
-
-#     cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
-#     cursor.execute(f"SELECT * FROM {tableName}")
-#     rows = cursor.fetchall()
-#     if len(rows) > 0:
-#         items = ''
-#         for row in rows:
-#             items += row[0] + '\n'
-#     else:
-#         items = 'No hay elementos agregados'
-#     bot.reply_to(message, items)
+@bot.message_handler(commands=['remove'])
+def remove(message):
+    entrada = message.text.lower().split()
+    chat_id = message.chat.id
+    if len(entrada) > 1:
+        entrada.remove('/remove')
+        tableName = get_tableName(chat_id)
+        conn = sqlite3.connect('./database.db')
+        cursor = conn.cursor()
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
+        if len(entrada) > 1:
+            zon = entrada[0] + ' ' + entrada[1]
+        else:
+            zon = entrada[0]
+        zona = paises.get_timezone(zon)
+        if zona != '':
+            cursor.execute(f"DELETE FROM {tableName} WHERE timezone_id=('" + zona + "')")
+        conn.commit()
+        conn.close()
+    pass
 
 
 bot.polling()
