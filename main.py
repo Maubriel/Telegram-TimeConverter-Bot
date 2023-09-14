@@ -12,71 +12,6 @@ def get_tableName(chat_id: int):
         tableName = 'chatg' + str(abs(chat_id))
     return tableName
 
-# /add [pais] - Añade un pais
-@bot.message_handler(commands=['add'])
-def add(message):
-    entrada = message.text.lower()
-    salida = 'output'
-    chat_id = message.chat.id
-    tableName = get_tableName(chat_id)
-    if len(entrada.removeprefix('/add')) > 1:
-        entrada = entrada.removeprefix('/add ')
-        conn = sqlite3.connect('./database.db')
-        cursor = conn.cursor()
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
-        zona = paises.get_timezone(entrada)
-        if zona != '':
-            cursor.execute(f"INSERT OR IGNORE INTO {tableName} VALUES('" + zona + "')")
-        conn.commit()
-        conn.close()
-        salida = 'Pais añadido'
-    else:
-        salida = 'No se pudo agregar el pais'
-
-    bot.reply_to(message, salida)
-
-# /timenow - Muestra todos los horarios actuales de los paises añadidos, o muestra UTC
-# /timenow [pais] - Muestra el horario actual del pais indicado, o muestra mensaje de error si no se encuentra
-@bot.message_handler(commands=['timenow'])
-def timenow(message):
-    entrada = message.text.lower()
-    salida = 'Pais no soportado'
-    chat_id = message.chat.id
-    tableName = get_tableName(chat_id)
-    conn = sqlite3.connect('./database.db')
-    cursor = conn.cursor()
-    cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
-    if entrada == '/timenow':
-        cursor.execute(f"SELECT * FROM {tableName}")
-        zones = cursor.fetchall()
-        if len(zones) > 0:
-            salida = ''
-            for zone in zones:
-                pais = paises.get_pais(zone[0])
-                aux = pytz.timezone(zone[0])
-                hora = str(datetime.datetime.now(aux).strftime('%H:%M'))
-                salida += pais + '\t\t' + hora + '\n'
-        else:
-            aux = pytz.timezone('UTC')
-            hora = str(datetime.datetime.now(aux).strftime('%H:%M'))
-            salida = 'UTC' + hora + '\n'
-    else:
-        entrada = entrada.removeprefix('/timenow ')
-        zona = paises.get_timezone(entrada)
-        if zona != '':
-            cursor.execute(f"SELECT timezone_id FROM {tableName} WHERE timezone_id='"+zona+"'")
-            zona_in_table = cursor.fetchall()
-            if len(zona_in_table) > 0:
-                for x in zona_in_table:
-                    pais = paises.get_pais(x[0])
-                    aux = pytz.timezone(x[0])
-                    hora = str(datetime.datetime.now(aux).strftime('%H:%M'))
-                    salida = pais + '\t\t' + hora + '\n'
-            else:
-                salida = 'Pais no añadido'
-    
-    bot.reply_to(message, salida)
-
 def get_hora(str_hora:str):
     hm = []
     if 'am' in str_hora:
@@ -136,6 +71,81 @@ def get_dia(in_dia):
                 in_dia -= 7
         return nro_a_dia[in_dia]
     return ''
+
+
+# /add [pais] - Añade un pais
+@bot.message_handler(commands=['add'])
+def add(message):
+    entrada = message.text.lower()
+    salida = 'output'
+    chat_id = message.chat.id
+    tableName = get_tableName(chat_id)
+    if len(entrada.removeprefix('/add')) > 1:
+        entrada = entrada.removeprefix('/add ')
+        conn = sqlite3.connect('./database.db')
+        cursor = conn.cursor()
+        cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
+        zona = paises.get_timezone(entrada)
+        if zona != '':
+            cursor.execute(f"INSERT OR IGNORE INTO {tableName} VALUES('" + zona + "')")
+        conn.commit()
+        conn.close()
+        salida = 'Pais añadido'
+    else:
+        salida = 'No se pudo agregar el pais'
+
+    bot.reply_to(message, salida)
+
+# /timenow - Muestra todos los horarios actuales de los paises añadidos, o muestra UTC
+# /timenow [pais] - Muestra el horario actual del pais indicado, o muestra mensaje de error si no se encuentra
+@bot.message_handler(commands=['timenow'])
+def timenow(message):
+    entrada = message.text.lower()
+    salida = 'Pais no soportado'
+    chat_id = message.chat.id
+    tableName = get_tableName(chat_id)
+    conn = sqlite3.connect('./database.db')
+    cursor = conn.cursor()
+    cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
+    if entrada == '/timenow':
+        cursor.execute(f"SELECT * FROM {tableName}")
+        zones = cursor.fetchall()
+        if len(zones) > 0:
+            salida = ''
+            pre_salida = []
+            for zone in zones:
+                tz = pytz.timezone(zone[0])
+                fecha_hora = datetime.datetime.now(tz)
+                pais_ouput = paises.get_pais(zone[0])
+                dia_output = fecha_hora.weekday()
+                time_output = [fecha_hora.hour,fecha_hora.minute]
+                pre_salida.append([pais_ouput,dia_output,time_output])
+            pre_salida_ordenada = sorted(pre_salida, key=lambda x: (x[1],x[2][0]))
+            for sal in pre_salida_ordenada:
+                    salida += sal[0] + ' - ' + get_dia(sal[1]) + ' ' + str(sal[2][0]).zfill(2) + ':' + str(sal[2][1]).zfill(2) + '\n'
+        else:
+            aux = pytz.timezone('UTC')
+            hora = str(datetime.datetime.now(aux).strftime('%H:%M'))
+            salida = 'UTC 🕗' + hora + '\n'
+    else:
+        entrada = entrada.removeprefix('/timenow ')
+        zona = paises.get_timezone(entrada)
+        if zona != '':
+            cursor.execute(f"SELECT timezone_id FROM {tableName} WHERE timezone_id='"+zona+"'")
+            zona_in_table = cursor.fetchall()
+            if len(zona_in_table) > 0:
+                for x in zona_in_table:
+                    tz = pytz.timezone(x[0])
+                    fecha_hora = datetime.datetime.now(tz)
+                    pais = paises.get_pais(x[0])
+                    dia = get_dia(fecha_hora.weekday())
+                    hora = str(datetime.datetime.now(tz).strftime('%H:%M'))
+                    salida = pais + ' - ' + dia + ' ' + hora + '\n'
+            else:
+                salida = 'Pais no añadido'
+    
+    bot.reply_to(message, salida)
+
 
 # /timeat [dia] [hora] [pais]
 # /timeat sab 6pm Puerto Rico
