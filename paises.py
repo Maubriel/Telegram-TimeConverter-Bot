@@ -106,3 +106,6 @@ paises = {
     '🇨🇷':'America/Costa_Rica',
 
 }
+
+def get_timezone(code):
+    return paises[code]
