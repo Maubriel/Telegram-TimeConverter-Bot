@@ -110,12 +110,39 @@ def get_hora(str_hora:str):
         return -1
     return hm
 
-# /timeat [hora] [pais]
-# /timeat 6pm Puerto Rico
-# /timeat 6pm mexico
-# /timeat 06:07pm mx
-# /timeat 18 mex
-# /timeat 18:04 mx
+def get_dia(in_dia):
+    dia_a_nro = {
+        'do':0,
+        'lu':1,
+        'ma':2,
+        'mi':3,
+        'ju':4,
+        'vi':5,
+        'sa':6,
+    }
+    nro_a_dia = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab']
+    if isinstance(in_dia, str):
+        if len(in_dia) > 1:
+            try:
+                aux = in_dia[:2]
+                return dia_a_nro[aux]
+            except KeyError:
+                return ''
+    elif isinstance(in_dia, int):
+        while in_dia < 0 or in_dia > 6:
+            if in_dia < 0:
+                in_dia += 7
+            elif in_dia > 6:
+                in_dia -= 7
+        return nro_a_dia[in_dia]
+    return ''
+
+# /timeat [dia] [hora] [pais]
+# /timeat sab 6pm Puerto Rico
+# /timeat domingo 6pm mexico
+# /timeat lu 06:07pm mx
+# /timeat lun 18 mex
+# /timeat MARTES 18:04 mx
 @bot.message_handler(commands=['timeat'])
 def timeat(message):
     entrada = message.text.lower().split()
@@ -125,15 +152,16 @@ def timeat(message):
     conn = sqlite3.connect('./database.db')
     cursor = conn.cursor()
     cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
-    if len(entrada) == 3 or len(entrada) == 4:
+    if len(entrada) == 4 or len(entrada) == 5:
         entrada.remove('/timeat')
-        if len(entrada) == 3:
-            in_pais = entrada[1] + ' ' + entrada[2]
+        if len(entrada) == 4:
+            in_pais = entrada[2] + ' ' + entrada[3]
         else:
-            in_pais = entrada[1]
+            in_pais = entrada[2]
         zona = paises.get_timezone(in_pais)
-        in_hora = get_hora(entrada[0])
-        if zona != '' and in_hora != -1:
+        in_hora = get_hora(entrada[1])
+        in_dia = get_dia(entrada[0])
+        if zona != '' and in_dia != '' and in_hora != -1:
             salida = ''
             cursor.execute(f"SELECT timezone_id FROM {tableName} WHERE timezone_id='"+zona+"'")
             zona_in_table = cursor.fetchall()
@@ -150,14 +178,23 @@ def timeat(message):
                     minuto_delta = time_destino.minute - time_base.minute
                     time_ouput = [in_hora[0]+hora_delta, in_hora[1]+minuto_delta]
                     pais_ouput = paises.get_pais(y[0])
-                    hora_menos = 0
+                    otra_hora = 0
                     if time_ouput[1] < 0:
-                        time_ouput[1]+=60
-                        hora_menos = -1
+                        time_ouput[1] += 60
+                        otra_hora = -1
+                    elif time_ouput[1] > 59:
+                        time_ouput[1] -= 60
+                        otra_hora = 1
+                    time_ouput[0] += otra_hora
+                    otro_dia = 0
                     if time_ouput[0] < 0:
-                        time_ouput[0]+=24
-                    time_ouput[0]+=hora_menos
-                    salida += pais_ouput + ' ' + str(time_ouput[0]).zfill(2) + ':' + str(time_ouput[1]).zfill(2) + '\n'
+                        time_ouput[0] += 24
+                        otro_dia = -1
+                    elif time_ouput[0] > 23:
+                        time_ouput[0] -= 24
+                        otro_dia = 1
+                    dia_output = in_dia + otro_dia
+                    salida += pais_ouput + ' - ' + get_dia(dia_output) + ' ' + str(time_ouput[0]).zfill(2) + ':' + str(time_ouput[1]).zfill(2) + '\n'
             else:
                 salida = 'Pais no enlistado'
         else:
