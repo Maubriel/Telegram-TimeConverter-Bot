@@ -247,4 +247,4 @@ def remove(message):
     pass
 
 
-bot.polling()
+bot.infinity_polling()
