@@ -100,14 +100,14 @@ def add(message):
 @bot.message_handler(commands=['timenow'])
 def timenow(message):
     bot.send_chat_action(chat_id=message.chat.id, action='typing')
-    entrada = message.text.lower()
+    entrada = message.text.lower().split()
     salida = 'Pais no soportado'
     chat_id = message.chat.id
     tableName = get_tableName(chat_id)
     conn = sqlite3.connect('./database.db')
     cursor = conn.cursor()
     cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
-    if entrada == '/timenow':
+    if len(entrada) == 1:
         cursor.execute(f"SELECT * FROM {tableName}")
         zones = cursor.fetchall()
         if len(zones) > 0:
@@ -130,7 +130,6 @@ def timenow(message):
             hora = str(fecha_hora.strftime('%H:%M'))
             salida = 'UTC 🕗 - ' + dia + ' ' + hora + '\n'
     else:
-        entrada = entrada.split()
         entrada.pop(0)
         tz = ''
         for i in entrada:
@@ -154,14 +153,14 @@ def timenow(message):
     bot.reply_to(message, salida)
 
 
-# /timeat [dia] [hora] [pais]
-# /timeat sab 6pm Puerto Rico
-# /timeat domingo 6pm mexico
-# /timeat lu 06:07pm mx
-# /timeat lun 18 mex
-# /timeat MARTES 18:04 mx
-@bot.message_handler(commands=['timeat'])
-def timeat(message):
+# /timeif [dia] [hora] [pais]
+# /timeif sab 6pm Puerto Rico
+# /timeif domingo 6pm mexico
+# /timeif lu 06:07pm mx
+# /timeif lun 18 mex
+# /timeif MARTES 18:04 mx
+@bot.message_handler(commands=['timeif'])
+def timeif(message):
     bot.send_chat_action(chat_id=message.chat.id, action='typing')
     entrada = message.text.lower().split()
     salida = 'output'
