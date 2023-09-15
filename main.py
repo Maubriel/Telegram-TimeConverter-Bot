@@ -177,7 +177,7 @@ def timeat(message):
         in_pais = ''
         for p in entrada:
             in_pais += p + ' '
-        in_pais.removesuffix(' ')
+        in_pais = in_pais.removesuffix(' ')
         zona = paises.get_timezone(in_pais)
         if zona != '' and in_dia != '' and in_hora != -1:
             salida = ''
