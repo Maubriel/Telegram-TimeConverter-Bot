@@ -76,16 +76,20 @@ def get_dia(in_dia):
 # /add [pais] - Añade un pais
 @bot.message_handler(commands=['add'])
 def add(message):
-    entrada = message.text.lower()
+    entrada = message.text.lower().split()
     salida = 'output'
     chat_id = message.chat.id
     tableName = get_tableName(chat_id)
-    if len(entrada.removeprefix('/add')) > 1:
-        entrada = entrada.removeprefix('/add ')
+    if len(entrada) > 1:
         conn = sqlite3.connect('./database.db')
         cursor = conn.cursor()
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
-        zona = paises.get_timezone(entrada)
+        entrada.pop(0)
+        tz = ''
+        for i in entrada:
+            tz += i + ' '
+        tz = tz.removesuffix(' ')
+        zona = paises.get_timezone(tz)
         if zona != '':
             cursor.execute(f"INSERT OR IGNORE INTO {tableName} VALUES('" + zona + "')")
         conn.commit()
@@ -112,10 +116,10 @@ def timenow(message):
             for zone in zones:
                 tz = pytz.timezone(zone[0])
                 fecha_hora = datetime.datetime.now(tz)
-                pais_ouput = paises.get_pais(zone[0])
+                pais_output = paises.get_pais(zone[0])
                 dia_output = fecha_hora.weekday()
-                time_output = [fecha_hora.hour,fecha_hora.minute]
-                pre_salida.append([pais_ouput,dia_output,time_output])
+                hora_output = [fecha_hora.hour,fecha_hora.minute]
+                pre_salida.append([pais_output,dia_output,hora_output])
             pre_salida_ordenada = sorted(pre_salida, key=lambda x: (x[1],x[2][0]))
             for sal in pre_salida_ordenada:
                     salida += sal[0] + ' - ' + get_dia(sal[1]) + ' ' + str(sal[2][0]).zfill(2) + ':' + str(sal[2][1]).zfill(2) + '\n'
@@ -126,8 +130,13 @@ def timenow(message):
             hora = str(fecha_hora.strftime('%H:%M'))
             salida = 'UTC 🕗 - ' + dia + ' ' + hora + '\n'
     else:
-        entrada = entrada.removeprefix('/timenow ')
-        zona = paises.get_timezone(entrada)
+        entrada = entrada.split()
+        entrada.pop(0)
+        tz = ''
+        for i in entrada:
+            tz += i + ' '
+        tz = tz.removesuffix(' ')
+        zona = paises.get_timezone(tz)
         if zona != '':
             cursor.execute(f"SELECT timezone_id FROM {tableName} WHERE timezone_id='"+zona+"'")
             zona_in_table = cursor.fetchall()
@@ -162,49 +171,48 @@ def timeat(message):
     cursor = conn.cursor()
     cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
     if len(entrada) == 4 or len(entrada) == 5:
-        entrada.remove('/timeat')
-        if len(entrada) == 4:
-            in_pais = entrada[2] + ' ' + entrada[3]
-        else:
-            in_pais = entrada[2]
+        entrada.pop(0)
+        in_dia = get_dia(entrada.pop(0))
+        in_hora = get_hora(entrada.pop(0))
+        in_pais = ''
+        for p in entrada:
+            in_pais += p + ' '
+        in_pais.removesuffix(' ')
         zona = paises.get_timezone(in_pais)
-        in_hora = get_hora(entrada[1])
-        in_dia = get_dia(entrada[0])
         if zona != '' and in_dia != '' and in_hora != -1:
             salida = ''
             pre_salida = []
             cursor.execute(f"SELECT timezone_id FROM {tableName} WHERE timezone_id='"+zona+"'")
             zona_in_table = cursor.fetchall()
             if len(zona_in_table) > 0:
-                for x in zona_in_table:
-                    tz = pytz.timezone(x[0])
-                    time_base = datetime.datetime.now(tz)
+                tz = pytz.timezone(zona_in_table[0][0])
+                hora_base = datetime.datetime.now(tz)
                 cursor.execute(f"SELECT * FROM {tableName}")
                 all_zones = cursor.fetchall()
-                for y in all_zones:
-                    tz = pytz.timezone(y[0])
-                    time_destino = datetime.datetime.now(tz)
-                    hora_delta = time_destino.hour - time_base.hour
-                    minuto_delta = time_destino.minute - time_base.minute
-                    time_ouput = [in_hora[0]+hora_delta, in_hora[1]+minuto_delta]
-                    pais_ouput = paises.get_pais(y[0])
+                for az in all_zones:
+                    tz = pytz.timezone(az[0])
+                    hora_destino = datetime.datetime.now(tz)
+                    hora_delta = hora_destino.hour - hora_base.hour
+                    minuto_delta = hora_destino.minute - hora_base.minute
+                    hora_output = [in_hora[0]+hora_delta, in_hora[1]+minuto_delta]
+                    pais_output = paises.get_pais(az[0])
                     otra_hora = 0
-                    if time_ouput[1] < 0:
-                        time_ouput[1] += 60
+                    if hora_output[1] < 0:
+                        hora_output[1] += 60
                         otra_hora = -1
-                    elif time_ouput[1] > 59:
-                        time_ouput[1] -= 60
+                    elif hora_output[1] > 59:
+                        hora_output[1] -= 60
                         otra_hora = 1
-                    time_ouput[0] += otra_hora
+                    hora_output[0] += otra_hora
                     otro_dia = 0
-                    if time_ouput[0] < 0:
-                        time_ouput[0] += 24
+                    if hora_output[0] < 0:
+                        hora_output[0] += 24
                         otro_dia = -1
-                    elif time_ouput[0] > 23:
-                        time_ouput[0] -= 24
+                    elif hora_output[0] > 23:
+                        hora_output[0] -= 24
                         otro_dia = 1
                     dia_output = in_dia + otro_dia
-                    pre_salida.append([pais_ouput,dia_output,time_ouput])
+                    pre_salida.append([pais_output,dia_output,hora_output])
                 pre_salida_ordenada = sorted(pre_salida, key=lambda x: (x[1],x[2][0]))
                 for sal in pre_salida_ordenada:
                     salida += sal[0] + ' - ' + get_dia(sal[1]) + ' ' + str(sal[2][0]).zfill(2) + ':' + str(sal[2][1]).zfill(2) + '\n'
@@ -223,16 +231,16 @@ def remove(message):
     entrada = message.text.lower().split()
     chat_id = message.chat.id
     if len(entrada) > 1:
-        entrada.remove('/remove')
+        entrada.pop(0)
         tableName = get_tableName(chat_id)
         conn = sqlite3.connect('./database.db')
         cursor = conn.cursor()
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {tableName}(timezone_id TEXT PRIMARY KEY)")
-        if len(entrada) > 1:
-            zon = entrada[0] + ' ' + entrada[1]
-        else:
-            zon = entrada[0]
-        zona = paises.get_timezone(zon)
+        tz = ''
+        for i in entrada:
+            tz += i + ' '
+        tz = tz.removesuffix(' ')
+        zona = paises.get_timezone(tz)
         if zona != '':
             cursor.execute(f"DELETE FROM {tableName} WHERE timezone_id=('" + zona + "')")
         conn.commit()
